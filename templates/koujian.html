@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="timezone" content="Asia/Shanghai">
+    <title>方辰托管</title>
+    <!-- 引入Vue -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <!-- 引入Element UI -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.15.6/lib/theme-chalk/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/element-ui@2.15.6/lib/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
+        <div class="centered-title">
+            <el-row>
+                <el-col :span="24">
+                    <h1>方辰托管</h1>
+                </el-col>
+            </el-row>
+        </div>
+        <el-form-item label="班级" prop="classId.value">
+            <el-select v-model="form.classId.value" placeholder="请选择班级"  @change="handleClassChange">
+                <el-option
+                        v-for="item in classes"
+                        :key="item.classId"
+                        :label="item.className"
+                        :value="item.classId">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="学生名称" prop="thing13.value" >
+            <el-select v-model="form.thing13.value" placeholder="请选择学生">
+
+                <el-option
+                        v-for="item in students"
+                        :key="item.studentId"
+                        :label="item.name"
+                        :value="item.studentId">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="日期" prop="time22.value" >
+            <el-date-picker
+                    v-model="form.time22.value"
+                    type="date"
+                    placeholder="选择日期"
+                    value-format="yyyy-MM-DD">
+            </el-date-picker>
+
+            <el-form-item>
+              <el-checkbox label="上午" v-model="form.morning" >上午</el-checkbox>
+              <el-checkbox label="下午" v-model="form.afternoon" >下午</el-checkbox>
+              <el-checkbox label="午餐" v-model="form.lunch" >就餐</el-checkbox>
+        </el-form-item>
+
+        </el-form-item>
+        <el-form-item>
+             <el-button type="primary" @click="onSubmit">签到</el-button>
+            <el-button type="success" @click="onSubmit2">请假</el-button>
+        </el-form-item>
+    </el-form>
+</div>
+
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                form: {
+                    classId: {"value": ''},
+                    thing13: {"value": ''},
+                    time22: {"value": new Date()},
+                    description: {"value": ''},
+                    mark:'',
+                    morning: true,
+                    afternoon: true,
+                    lunch: true,
+                },
+                classes: '',
+                students: [],
+                rules: {
+                    'classId.value': [
+                        {required: true, message: '请选择班级', trigger: 'change'}
+                    ],
+                    'thing13.value': [
+                        {required: true, message: '请选择学生', trigger: 'change'}
+                    ],
+                    'time22.value': [
+                        {required: true, message: '请选择日期', trigger: 'change'}
+                    ]
+                }
+            };
+        },
+
+        methods: {
+            handleClassChange(value) {
+                // 模拟根据班级筛选学生
+
+                for (let i = 0; i < this.classes.length; i++) {
+                    // 检查当前班级的classId是否与传入的classId匹配
+                    if (this.classes[i].classId === value) {
+                        // 如果匹配，返回当前班级的学生列表
+                        this.students = this.classes[i].students;
+                        this.form.thing13.value = this.students[0].studentId
+                        break;
+
+                    }else {
+                        this.form.thing13.value='';
+                    }
+                }
+                console.log(this.students)
+
+            },
+            onSubmit() {
+                // 发送数据到后端
+                this.form.mark = 'qiandao'
+                this.$refs.formRef.validate((valid) => {
+                    if (valid) {
+                        console.log(valid)
+                        this.form.description.value = -1
+                        axios.post('{% url "send_template_message" %}', this.form)
+                            .then(response => {
+                                alert('提交成功');
+                                console.log(response.data);
+                            })
+                            .catch(error => {
+                                alert('提交失败');
+                                console.error(error);
+                            });
+                    }
+                })
+            },
+            onSubmit2() {
+                this.form.mark = 'qingjia'
+                // 发送数据到后端进行请假 url 需要重新设置
+                this.form.description.value = 0
+                axios.post('{% url "send_template_message" %}', this.form)
+                    .then(response => {
+                        alert('提交成功');
+                        console.log(response.data);
+                    })
+                    .catch(error => {
+                        alert('提交失败');
+                        console.error(error);
+                    });
+            },
+            fetchData() {
+                axios.get('{% url "get_c_s" %}')
+                    .then(response => {
+                        this.classes = response.data.classes;
+                        console.log(this.classes)
+                    })
+                    .catch(error => {
+                        console.error('Error fetching data:', error);
+                    });
+            }
+
+        },
+        mounted() {
+            this.fetchData();
+            this.handleClassChange(this.form.classId);
+
+        }
+    });
+</script>
+
+</body>
+</html>
+<style scoped>
+    .centered-title h1 {
+        text-align: center;
+    }
+</style>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>班级签到系统</title>
+    <!-- 引入 Vue.js -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <!-- 引入Element UI -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.15.6/lib/theme-chalk/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/element-ui@2.15.6/lib/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <el-form>
+        <el-form-item>
+            <div class="centered-title">
+                <el-row>
+                    <el-col :span="24">
+                        <h1>方辰托管签到</h1>
+                    </el-col>
+                </el-row>
+            </div>
+            </el-form-item>
+           <el-form-item label="班级" prop="classId.value">
+            <el-select v-model="form.classId.value" placeholder="请选择班级"  @change="handleClassChange">
+                <el-option
+                        v-for="item in classes"
+                        :key="item.classId"
+                        :label="item.className"
+                        :value="item.classId">
+                </el-option>
+            </el-select>
+                <el-date-picker v-model="selectedDate" type="date" placeholder="选择日期"></el-date-picker>
+        </el-form-item>
+      <el-form-item>
+
+            <el-table :data="students" style="width: 100%">
+                <el-table-column prop="index" label="序号" width="80"></el-table-column>
+                <el-table-column prop="name" label="学生姓名"></el-table-column>
+                <el-table-column prop="keshiyue" label="剩余课时"></el-table-column>
+                <el-table-column prop="canfeiyue" label="餐费剩余"></el-table-column>
+                <el-table-column label="签到时段" width="180">
+                    <template slot-scope="scope">
+                        <el-checkbox-group v-model="scope.row.checkedTimes">
+                            <el-checkbox label="上午"></el-checkbox>
+                            <el-checkbox label="下午"></el-checkbox>
+                            <el-checkbox label="午餐"></el-checkbox>
+                        </el-checkbox-group>
+                    </template>
+                </el-table-column>
+                <el-table-column label="备注"></el-table-column>
+            </el-table>
+        </el-form-item>
+        <el-form-item>
+            <el-button type="primary" @click="onSubmit">一键提交</el-button>
+        </el-form-item>
+    </el-form>
+
+
+</div>
+
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                form: {
+                    classId: {"value": ''},
+                    thing13: {"value": ''},
+                    time22: {"value": new Date()},
+                    description: {"value": ''},
+                    mark:'',
+                },
+                classes: '',
+                classId: {"value": ''},
+                selectedDate: '',
+                students: [
+                    // 示例数据，实际应用中应根据选择的班级和日期从后端获取
+                ]
+            }
+        },
+        methods: {
+            onSubmit(){
+                console.log(this.students)
+            },
+            handleClassChange(value) {
+                // 模拟根据班级筛选学生
+                for (let i = 0; i < this.classes.length; i++) {
+                    // 检查当前班级的classId是否与传入的classId匹配
+                    if (this.classes[i].classId === value) {
+                        // 如果匹配，返回当前班级的学生列表
+                        this.students = this.classes[i].students;
+                        break;
+
+                    } else {
+                    }
+                }
+                console.log(this.students)
+
+            },
+            fetchData() {
+                axios.get('{% url "get_c_s" %}')
+                    .then(response => {
+                        this.classes = response.data.classes;
+                    })
+                    .catch(error => {
+                        console.error('Error fetching data:', error);
+                    });
+            }
+        },
+        mounted() {
+            this.fetchData();
+            {#this.handleClassChange(this.classId);#}
+
+        },
+        watch: {
+            // 可以在这里添加对 selectedClass 或 selectedDate 的监听，以重新获取数据
+        }
+    });
+</script>
+</body>
+</html>

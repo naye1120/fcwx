@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>方辰托管表现推送</title>
+    <!-- 引入Vue -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <!-- 引入Element UI -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.15.6/lib/theme-chalk/index.css">
+    <script src="https://cdn.jsdelivr.net/npm/element-ui@2.15.6/lib/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <el-form :model="form" ref="form" label-width="100px">
+        <div class="centered-title">
+            <el-row>
+                <el-col :span="24">
+                    <h1>方辰托管</h1>
+                </el-col>
+            </el-row>
+        </div>
+        <el-form-item label="班级">
+            <el-select v-model="form.classId.value" placeholder="请选择班级" @change="handleClassChange">
+                <el-option
+                        v-for="item in classes"
+                        :key="item.classId"
+                        :label="item.className"
+                        :value="item.className">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="学生名称">
+            <el-select v-model="form.studentId.value" placeholder="请选择学生">
+
+                <el-option
+                        v-for="item in students"
+                        :key="item.studentId"
+                        :label="item.name"
+                        :value="item.name">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="日期">
+            <el-date-picker
+                    v-model="form.date.value"
+                    type="date"
+                    placeholder="选择日期"
+                   value-format="yyyy-MM-dd">
+            </el-date-picker>
+        </el-form-item>
+        <el-form-item label="日常表现">
+            <el-input type="textarea" v-model="form.description.value"></el-input>
+        </el-form-item>
+        <el-form-item>
+            <el-button type="primary" @click="onSubmit">提交</el-button>
+        </el-form-item>
+    </el-form>
+</div>
+
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                form: {
+                    classId: {"value":''},
+                    studentId: {"value":''},
+                    date: {"value":new Date()},
+                    description: {"value":''},
+                    mark:'',
+                },
+                classes: '',
+                students: '',
+            };
+        },
+
+        methods: {
+            handleClassChange(value) {
+                // 模拟根据班级筛选学生
+                for (let i = 0; i < this.classes.length; i++) {
+                    // 检查当前班级的classId是否与传入的classId匹配
+                    if (this.classes[i].className === value) {
+                        // 如果匹配，返回当前班级的学生列表
+                        this.students =  this.classes[i].students;
+                    }
+                }
+                console.log(this.students)
+
+            },
+            onSubmit() {
+                // 发送数据到后端
+                this.form.mark = 'biaoxian'
+                axios.post('{% url "send_template_message" %}', this.form)
+                    .then(response => {
+                        alert('提交成功');
+                        console.log(response.data);
+                    })
+                    .catch(error => {
+                        alert('提交失败');
+                        console.error(error);
+                    });
+            },
+            fetchData() {
+                axios.get('{% url "get_c_s" %}')
+                    .then(response => {
+                        this.classes = response.data.classes;
+                        console.log(this.classes)
+                    })
+                    .catch(error => {
+                        console.error('Error fetching data:', error);
+                    });
+            }
+
+        },
+        mounted() {
+            this.fetchData();
+            this.handleClassChange(this.form.classId);
+
+        }
+    });
+</script>
+
+</body>
+</html>
+<style scoped>
+    .centered-title h1 {
+        text-align: center;
+    }
+</style>

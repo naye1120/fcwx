@@ -1,0 +1,60 @@
+{
+  "button": [
+    {
+      "name": "咨询服务",
+      "sub_button": [
+        {
+          "type": "view",
+          "name": "课程体系-",
+          "url": "https://work.weixin.qq.com/kfid/kfc267afcc24b2622a8"
+        },
+        {
+          "type": "view",
+          "name": "咨询客服",
+          "url": "https://work.weixin.qq.com/kfid/kfc267afcc24b2622a8"
+        }
+      ]
+    },
+    {
+      "name": "活动中心",
+      "sub_button": [
+        {
+          "type": "view",
+          "name": "开业活动",
+          "url": "https://work.weixin.qq.com/kfid/kfc267afcc24b2622a8"
+        },
+        {
+          "type": "view",
+          "name": "免费体验",
+          "url": "https://s.wcd.im/v/e339eZ35/"
+        }
+      ]
+    },
+    {
+      "name": "老师菜单",
+      "sub_button": [
+        {
+          "type": "view",
+          "name": "方辰风采",
+          "url": "https://oj29702703-101.m.365hjy.com/webIndex.jsp#/"
+        },
+        {
+          "type": "view",
+          "name": "客服中心",
+          "url": "https://work.weixin.qq.com/kfid/kfc267afcc24b2622a8"
+        },
+        {
+          "type": "view",
+          "name": "关于我们",
+          "url": "https://oj29702703-101.m.365hjy.com/webIndex.jsp#/pages/cusCol1/cusCol1"
+        }
+      ]
+    }
+  ],"matchrule": {
+        "tag_id": "100"
+}
+}
+
+
+
+
