@@ -1,4 +1,7 @@
+
+
 from django.db import models
+from django.utils import timezone
 
 
 class WeChatToken(models.Model):
@@ -98,7 +101,9 @@ class StudentRecord(models.Model):
     # 餐费余额
     meal_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="餐费余额")
     # 发生时间
-    occurrence_time = models.DateTimeField(auto_now_add=True, verbose_name="发生时间")
+    occurrence_time = models.DateTimeField(auto_now_add=True, verbose_name="操作时间")
+    # 发生时间
+    oc_time = models.DateTimeField(default=timezone.now,verbose_name="发生时间")
     # 上午标识符（假设为布尔类型）
     morning = models.BooleanField(default=False, verbose_name="上午")
     # 下午标识符（假设为布尔类型）

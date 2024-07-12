@@ -1,5 +1,6 @@
 import json
 
+from django.http import JsonResponse
 from django.utils import timezone
 from .models import WeChatToken
 import requests
@@ -62,3 +63,18 @@ def send_template_message(access_token, touser, template_id, data):
     }
     response = requests.post(url, data=json.dumps(data), headers=headers)
     return response.json()
+
+
+def sene_tem(access_token, post_data):
+    # 发送POST请求到公众号服务器的模板消息接口
+    url = f"https://api.weixin.qq.com/cgi-bin/message/template/send?access_token={access_token}"
+    response = requests.post(url, json=post_data)
+    # 处理响应
+    if response.status_code == 200:
+        result = response.json()
+        if result['errcode'] == 0:
+            return JsonResponse({'status': 'success', 'message': '模板消息发送成功'})
+        else:
+            return JsonResponse({'status': 'error', 'message': result['errmsg']}, status=500)
+    else:
+        return JsonResponse({'status': 'error', 'message': '发送模板消息失败'}, status=500)

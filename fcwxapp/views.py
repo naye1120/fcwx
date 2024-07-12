@@ -2,9 +2,12 @@ import time
 from datetime import datetime
 import hashlib
 import json
+from decimal import Decimal
 
 from xml.etree import ElementTree as ET
 import requests
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 from fcwxapp import wxapi
 
@@ -17,7 +20,7 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from fcwxapp.models import WeChatToken, StudentProfile, HostClass
+from fcwxapp.models import WeChatToken, StudentProfile, HostClass, StudentRecord
 
 WECHAT_TOKEN = 'naye1204'
 # appid = 'wx34415bfb0ed72501'
@@ -27,6 +30,7 @@ appid = 'wx92ff9310623895e6'
 secret = 'fe131033e9bb9ee8a3aaaf4e7f7a67d9'
 WECHAT_TEMPLATE_ID = "O-qPMkCKxpjElH8AiT8qQinDpOi-2nBy_ZldXq1YmXE"
 OPEN_ID = "ocswY6dZJ-0UJNBi0F_XNkQZweyM"
+
 
 class wxrenzheng(APIView):
     def get(self, request, *args, **kwargs):
@@ -42,7 +46,6 @@ class wxrenzheng(APIView):
 
         # 计算并比对signature
         tmp_str_md5 = hashlib.sha1(tmp_str.encode('utf-8')).hexdigest()
-        print(tmp_str_md5)
         if tmp_str_md5 == signature:
             # 验证成功，返回echostr
             return HttpResponse(echostr)
@@ -64,7 +67,7 @@ class wxrenzheng(APIView):
             # 提取事件类型和事件键
             event = root.find('Event').text
             event1 = root.find('FromUserName').text
-            print(event1)
+            print(event)
             event_key = root.find('EventKey').text if root.find('EventKey') is not None else None
 
             # 判断是否是菜单点击事件
@@ -108,53 +111,42 @@ class send_template_message(APIView):
     def post(self, request, *args, **kwargs):
         data = request.data
         if data['mark'] == 'qiandao':
-            student = StudentProfile.objects.get(archive_number=str(data['thing13']['value']))
-            print(student.name)
-            student.remaining_classes -= 2
-            student.meal_balance -= 10
-            student.save()
+            for stu in request.data['students']:
+                student = StudentRecord.objects.filter(file_number=stu['studentId']).last()
+                # student.remaining_classes -= 2
+                # student.meal_balance -= 10
+                # student.save()
 
-            WECHAT_TEMPLATE_ID = 'uMxnjUyReUfRl5T3RswRIV6eZsKJU-LOHl2N61lzrRs'
-            data['thing11'] = {"value": f"消耗2课时，剩余{student.remaining_classes}课时" }
-            data['phrase3'] = {"value": '托管'}
-            data['thing21'] = {"value": F"餐费剩余{student.meal_balance}元。"}
-            data['time22'] = {"value": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
-            data['thing13'] = {"value":student.name}
-            OPEN_ID = student.parent_openid
+                WECHAT_TEMPLATE_ID = 'uMxnjUyReUfRl5T3RswRIV6eZsKJU-LOHl2N61lzrRs'
+                data['thing11'] = {"value": f"本次{student.changed_hours}课时，剩余{student.remaining_hours}课时"}
+                data['phrase3'] = {"value": '托管'}
+                data['thing21'] = {"value": F"餐费剩余{student.meal_balance}元。"}
+                data['time22'] = {"value": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+                data['thing13'] = {"value": student.student_name}
+                OPEN_ID = StudentProfile.objects.get(archive_number=stu['studentId']).parent_openid
 
-        # open_id = 'oCvGS6Unqsz2vVBPezahRATfUWHM'
-        open_id = OPEN_ID
-        template_id = WECHAT_TEMPLATE_ID  # 你的模板ID
-        # ... 其他数据，如模板消息的各个字段的值 ...
+                # open_id = 'oCvGS6Unqsz2vVBPezahRATfUWHM'
+                open_id = OPEN_ID
+                template_id = WECHAT_TEMPLATE_ID  # 你的模板ID
+                # ... 其他数据，如模板消息的各个字段的值 ...
 
-        # 获取access_token
-        access_token = wxapi.get_access_token(appid, secret)
-        # 构造发送模板消息的请求体
-        post_data = {
-            "touser": open_id,
-            "template_id": template_id,
-            "url": "http://weixin.qq.com/download",
-            "miniprogram": {
+                # 获取access_token
+                access_token = wxapi.get_access_token(appid, secret)
+                # 构造发送模板消息的请求体
+                post_data = {
+                    "touser": open_id,
+                    "template_id": template_id,
+                    "url": "http://weixin.qq.com/download",
+                    "miniprogram": {
 
-            },
-            "client_msg_id": "",
-            "data": data
-        }
-        print(post_data)
-        # 发送POST请求到公众号服务器的模板消息接口
-        url = f"https://api.weixin.qq.com/cgi-bin/message/template/send?access_token={access_token}"
-        response = requests.post(url, json=post_data)
-        print(url)
+                    },
+                    "client_msg_id": "",
+                    "data": data
+                }
+                mess =  wxapi.sene_tem(access_token=access_token,post_data=post_data)
+        return mess
 
-        # 处理响应
-        if response.status_code == 200:
-            result = response.json()
-            if result['errcode'] == 0:
-                return JsonResponse({'status': 'success', 'message': '模板消息发送成功'})
-            else:
-                return JsonResponse({'status': 'error', 'message': result['errmsg']}, status=500)
-        else:
-            return JsonResponse({'status': 'error', 'message': '发送模板消息失败'}, status=500)
+
 
 
 class get_c_s(APIView):
@@ -179,13 +171,14 @@ class get_c_s(APIView):
             for stu in students:
                 i = 0
                 student_data = {
-                    "index":i+1,
+                    "index": i + 1,
                     "studentId": stu.archive_number,
                     "name": stu.name,
                     "gender": stu.gender,
                     "canfeiyue": stu.meal_balance,
                     "keshiyue": stu.remaining_hours,
-                    "checkedTimes":["上午","下午","午餐"]
+                    "checkedTimes": ["上午", "下午", "午餐"],
+                    "beizhu":""
                 }
                 if stu.host_class_id == cls.id:
                     class_data["students"].append(student_data)
@@ -212,8 +205,6 @@ class send_koujian(APIView):
         return render(request, 'koujian.html')
 
 
-
-
 class send_qiandao(APIView):
     """
     发送扣减通知
@@ -221,3 +212,44 @@ class send_qiandao(APIView):
 
     def get(self, request, *args, **kwargs):
         return render(request, 'qiandao.html')
+
+    def post(self, request, *args, **kwargs):
+        oc_time = request.data['time22']['value']
+        try:
+            for iss in request.data["students"]:
+                studentid = iss['studentId']
+                student_name = iss['name']
+                file_number = iss['studentId']
+                note = iss['beizhu']
+                moring = False
+                afternoon = False
+                lunch = False
+                studentprofile = StudentProfile.objects.get(archive_number=studentid)
+                keshiyue = iss['keshiyue']
+                wucanyue = iss['canfeiyue']
+                koujian = 0
+                wucan = 0
+                if '上午' in iss['checkedTimes']:
+                    koujian = koujian+1
+                    moring = True
+                if '下午' in iss['checkedTimes']:
+                    koujian = koujian + 1
+                    afternoon = True
+                if '午餐' in iss['checkedTimes']:
+                    wucan = wucan+10
+                    lunch = True
+                # 更新主表餐费余额及课时余额
+                keshiyue = keshiyue - koujian
+                wucanyue = Decimal(wucanyue) - wucan
+                studentprofile.meal_balance = wucanyue
+                studentprofile.remaining_hours = keshiyue
+                studentprofile.save()
+                # 新增签到行
+                new_Record = StudentRecord(student_name=student_name,file_number=file_number,changed_hours=-koujian,
+                                           remaining_hours=keshiyue,deducted_meal_fee=-wucan,meal_balance=wucanyue,
+                                           morning=moring,afternoon=afternoon,lunch=lunch,note=note,oc_time= oc_time)
+                new_Record.save()
+            return JsonResponse({'status': 'success', 'message': '写入数据库成功'})
+        except Exception as e:
+            print(e)
+        return JsonResponse({'status': 'error', 'message': e})

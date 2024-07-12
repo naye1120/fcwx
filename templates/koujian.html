@@ -59,7 +59,7 @@
 
         </el-form-item>
         <el-form-item>
-             <el-button type="primary" @click="onSubmit">签到</el-button>
+             <el-button type="primary" @click="onSubmit">销假</el-button>
             <el-button type="success" @click="onSubmit2">请假</el-button>
         </el-form-item>
     </el-form>
@@ -117,7 +117,7 @@
             },
             onSubmit() {
                 // 发送数据到后端
-                this.form.mark = 'qiandao'
+                this.form.mark = 'xiaojia'
                 this.$refs.formRef.validate((valid) => {
                     if (valid) {
                         console.log(valid)

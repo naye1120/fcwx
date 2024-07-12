@@ -13,7 +13,7 @@
 </head>
 <body>
 <div id="app">
-    <el-form>
+    <el-form :model="form" ref="formRef">
         <el-form-item>
             <div class="centered-title">
                 <el-row>
@@ -22,9 +22,9 @@
                     </el-col>
                 </el-row>
             </div>
-            </el-form-item>
-           <el-form-item label="班级" prop="classId.value">
-            <el-select v-model="form.classId.value" placeholder="请选择班级"  @change="handleClassChange">
+        </el-form-item>
+        <el-form-item prop="classId.value">
+            <el-select v-model="form.classId.value" placeholder="请选择班级" @change="handleClassChange">
                 <el-option
                         v-for="item in classes"
                         :key="item.classId"
@@ -32,16 +32,17 @@
                         :value="item.classId">
                 </el-option>
             </el-select>
-                <el-date-picker v-model="selectedDate" type="date" placeholder="选择日期"></el-date-picker>
+            <el-date-picker v-model="form.time22.value" type="date" placeholder="选择日期" value-format="yyyy-MM-dd"></el-date-picker>
         </el-form-item>
-      <el-form-item>
+        <el-form-item>
 
-            <el-table :data="students" style="width: 100%">
-                <el-table-column prop="index" label="序号" width="80"></el-table-column>
+            <el-table :data="form.students" style="width: 100%">
+                <el-table-column prop="index" label="序号" type="index"
+                                 :index="indexMethod"></el-table-column>
                 <el-table-column prop="name" label="学生姓名"></el-table-column>
                 <el-table-column prop="keshiyue" label="剩余课时"></el-table-column>
                 <el-table-column prop="canfeiyue" label="餐费剩余"></el-table-column>
-                <el-table-column label="签到时段" width="180">
+                <el-table-column label="签到时段">
                     <template slot-scope="scope">
                         <el-checkbox-group v-model="scope.row.checkedTimes">
                             <el-checkbox label="上午"></el-checkbox>
@@ -50,11 +51,23 @@
                         </el-checkbox-group>
                     </template>
                 </el-table-column>
-                <el-table-column label="备注"></el-table-column>
+                <el-table-column label="备注">
+                    <template slot-scope="scope">
+
+                        <el-input
+                                type="textarea"
+                                :rows="2"
+                                placeholder="请输入内容"
+                                v-model="scope.row.beizhu">
+                        </el-input>
+
+                    </template>
+                </el-table-column>
+
             </el-table>
         </el-form-item>
         <el-form-item>
-            <el-button type="primary" @click="onSubmit">一键提交</el-button>
+            <el-button type="primary" @click="onSubmit" :disabled="isDisabled">一键提交</el-button>
         </el-form-item>
     </el-form>
 
@@ -68,22 +81,59 @@
             return {
                 form: {
                     classId: {"value": ''},
-                    thing13: {"value": ''},
-                    time22: {"value": new Date()},
+                    time22: {"value":''},
                     description: {"value": ''},
-                    mark:'',
+                    mark: '',
+                    students: [
+                        // 示例数据，实际应用中应根据选择的班级和日期从后端获取
+                    ],
                 },
+
                 classes: '',
-                classId: {"value": ''},
-                selectedDate: '',
-                students: [
-                    // 示例数据，实际应用中应根据选择的班级和日期从后端获取
-                ]
+                isDisabled:false,
             }
         },
         methods: {
-            onSubmit(){
-                console.log(this.students)
+            indexMethod(index) {
+                return index + 1;
+            },
+            onSubmit() {
+                this.isDisabled=true;
+                this.$refs.formRef.validate((valid) => {
+                    if (valid) {
+                        console.log(valid)
+                        this.form.description.value = -1
+                        axios.post('{% url "send_qiandao" %}', this.form)
+                            .then(response => {
+                                alert('提交成功');
+                                this.onSubmit2()
+                                this.form.students = ""
+                            })
+                            .catch(error => {
+                                alert('提交失败');
+                                console.error(error);
+                            });
+                    }
+                })
+            },
+            onSubmit2() {
+                // 发送数据到后端
+                this.form.mark = 'qiandao'
+                this.$refs.formRef.validate((valid) => {
+                    if (valid) {
+
+                        this.form.description.value = -1
+                        axios.post('{% url "send_template_message" %}', this.form)
+                            .then(response => {
+                                alert('提交成功');
+                                console.log(response.data);
+                            })
+                            .catch(error => {
+                                alert('提交失败');
+                                console.error(error);
+                            });
+                    }
+                })
             },
             handleClassChange(value) {
                 // 模拟根据班级筛选学生
@@ -91,13 +141,13 @@
                     // 检查当前班级的classId是否与传入的classId匹配
                     if (this.classes[i].classId === value) {
                         // 如果匹配，返回当前班级的学生列表
-                        this.students = this.classes[i].students;
+                        this.form.students = this.classes[i].students;
                         break;
 
                     } else {
                     }
                 }
-                console.log(this.students)
+                console.log(this.form.students)
 
             },
             fetchData() {
@@ -112,7 +162,7 @@
         },
         mounted() {
             this.fetchData();
-            {#this.handleClassChange(this.classId);#}
+            this.handleClassChange(this.form.classId.value);
 
         },
         watch: {
