@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>班级签到系统</title>
+    <title>方辰托管每日签到</title>
     <!-- 引入 Vue.js -->
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
     <!-- 引入Element UI -->
@@ -13,17 +13,17 @@
 </head>
 <body>
 <div id="app">
-    <el-form :model="form" ref="formRef">
+    <el-form :model="form" ref="formRef" :rules="rules">
         <el-form-item>
             <div class="centered-title">
                 <el-row>
                     <el-col :span="24">
-                        <h1>方辰托管签到</h1>
+                        <h1>方辰托管每日签到</h1>
                     </el-col>
                 </el-row>
             </div>
         </el-form-item>
-        <el-form-item prop="classId.value">
+       <el-form-item label="班级" prop="classId.value">
             <el-select v-model="form.classId.value" placeholder="请选择班级" @change="handleClassChange">
                 <el-option
                         v-for="item in classes"
@@ -32,10 +32,13 @@
                         :value="item.classId">
                 </el-option>
             </el-select>
-            <el-date-picker v-model="form.time22.value" type="date" placeholder="选择日期" value-format="yyyy-MM-dd"></el-date-picker>
         </el-form-item>
-        <el-form-item>
+        <el-form-item label="日期" prop="time22.value">
+            <el-date-picker v-model="form.time22.value" type="date" placeholder="选择日期"
+                            value-format="yyyy-MM-dd"></el-date-picker>
+        </el-form-item>
 
+        <el-form-item>
             <el-table :data="form.students" style="width: 100%">
                 <el-table-column prop="index" label="序号" type="index"
                                  :index="indexMethod"></el-table-column>
@@ -81,7 +84,7 @@
             return {
                 form: {
                     classId: {"value": ''},
-                    time22: {"value":''},
+                    time22: {"value": ''},
                     description: {"value": ''},
                     mark: '',
                     students: [
@@ -90,7 +93,15 @@
                 },
 
                 classes: '',
-                isDisabled:false,
+                isDisabled: false,
+                rules: {
+                    'classId.value': [
+                        {required: true, message: '请选择班级', trigger: 'change'}
+                    ],
+                    'time22.value': [
+                        {required: true, message: '请选择日期', trigger: 'change'}
+                    ]
+                }
             }
         },
         methods: {
@@ -98,7 +109,7 @@
                 return index + 1;
             },
             onSubmit() {
-                this.isDisabled=true;
+                this.isDisabled = true;
                 this.$refs.formRef.validate((valid) => {
                     if (valid) {
                         console.log(valid)

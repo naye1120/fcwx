@@ -118,8 +118,8 @@ class send_template_message(APIView):
                 # student.save()
 
                 WECHAT_TEMPLATE_ID = 'uMxnjUyReUfRl5T3RswRIV6eZsKJU-LOHl2N61lzrRs'
-                data['thing11'] = {"value": f"本次{student.changed_hours}课时，剩余{student.remaining_hours}课时"}
-                data['phrase3'] = {"value": '托管'}
+                data['thing11'] = {"value": f"本次变化{student.changed_hours}课时，剩余{student.remaining_hours}课时"}
+                data['phrase3'] = {"value": '托管签到'}
                 data['thing21'] = {"value": F"餐费剩余{student.meal_balance}元。"}
                 data['time22'] = {"value": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
                 data['thing13'] = {"value": student.student_name}
@@ -143,10 +143,44 @@ class send_template_message(APIView):
                     "client_msg_id": "",
                     "data": data
                 }
-                mess =  wxapi.sene_tem(access_token=access_token,post_data=post_data)
+                mess = wxapi.sene_tem(access_token=access_token, post_data=post_data)
+        elif data['mark'] == 'gengxin':
+            studentid = data['thing13']['value']
+            print(studentid)
+            student = StudentRecord.objects.filter(file_number=studentid).last()
+            print(student.student_name)
+            # student.remaining_classes -= 2
+            # student.meal_balance -= 10
+            # student.save()
+            if student:
+                WECHAT_TEMPLATE_ID = 'uMxnjUyReUfRl5T3RswRIV6eZsKJU-LOHl2N61lzrRs'
+                data['thing11'] = {"value": f"本次变化{student.changed_hours}课时，剩余{student.remaining_hours}课时"}
+                data['phrase3'] = {"value": '更新课时'}
+                data['thing21'] = {"value": F"餐费剩余{student.meal_balance}元。"}
+                data['time22'] = {"value": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+                data['thing13'] = {"value": student.student_name}
+                OPEN_ID = StudentProfile.objects.get(archive_number=studentid).parent_openid
+
+                # open_id = 'oCvGS6Unqsz2vVBPezahRATfUWHM'
+                open_id = OPEN_ID
+                template_id = WECHAT_TEMPLATE_ID  # 你的模板ID
+                # ... 其他数据，如模板消息的各个字段的值 ...
+
+                # 获取access_token
+                access_token = wxapi.get_access_token(appid, secret)
+                # 构造发送模板消息的请求体
+                post_data = {
+                    "touser": open_id,
+                    "template_id": template_id,
+                    "url": "http://weixin.qq.com/download",
+                    "miniprogram": {
+
+                    },
+                    "client_msg_id": "",
+                    "data": data
+                }
+                mess = wxapi.sene_tem(access_token=access_token, post_data=post_data)
         return mess
-
-
 
 
 class get_c_s(APIView):
@@ -178,7 +212,7 @@ class get_c_s(APIView):
                     "canfeiyue": stu.meal_balance,
                     "keshiyue": stu.remaining_hours,
                     "checkedTimes": ["上午", "下午", "午餐"],
-                    "beizhu":""
+                    "beizhu": ""
                 }
                 if stu.host_class_id == cls.id:
                     class_data["students"].append(student_data)
@@ -203,6 +237,55 @@ class send_koujian(APIView):
 
     def get(self, request, *args, **kwargs):
         return render(request, 'koujian.html')
+
+    def post(self, request, *args, **kwargs):
+
+        oc_time = request.data['time22']['value']
+        studentid = request.data['thing13']['value']
+        student_name = request.data['thing13']['name']
+        note = request.data['beizhu']
+        moring = request.data['morning']
+        afternoon = request.data['afternoon']
+        lunch = request.data['lunch']
+        studenrecord = StudentRecord.objects.filter(file_number=studentid, oc_time=oc_time).last()
+        student = StudentProfile.objects.filter(archive_number=studentid).last()
+        koujian = 0
+        wucan = 0
+        # keshiyue = student.remaining_hours
+        # wucanyue = student.meal_balance
+        if studenrecord:
+            if moring > studenrecord.morning:
+                koujian += 1
+            elif moring < studenrecord.morning:
+                koujian -= 1
+            if afternoon > studenrecord.afternoon:
+                koujian += 1
+            elif afternoon < studenrecord.afternoon:
+                koujian -= 1
+            if lunch > studenrecord.lunch:
+                wucan += 10
+            elif lunch < studenrecord.lunch:
+                wucan -= 10
+            keshiyue = student.remaining_hours - koujian
+            print(keshiyue)
+            wucanyue = student.meal_balance -wucan
+            print(wucanyue)
+            try:
+                student.meal_balance = wucanyue
+                student.remaining_hours = keshiyue
+                student.save()
+                new_Record = StudentRecord(student_name=student_name, file_number=studentid, changed_hours=-koujian,
+                                           remaining_hours=keshiyue, deducted_meal_fee=-wucan, meal_balance=wucanyue,
+                                           morning=moring, afternoon=afternoon, lunch=lunch, note=note, oc_time=oc_time)
+                new_Record.save()
+                return JsonResponse({'status': 'success', 'message': '写入数据库成功'})
+            except Exception as e:
+                print(f'Error: {e}')
+                return JsonResponse({'message': 'Error occurred while sending koujian notification'}, status=500)
+        else:
+            return JsonResponse({'message': 'Error occurred while sending koujian notification'}, status=500)
+
+
 
 
 class send_qiandao(APIView):
@@ -230,13 +313,13 @@ class send_qiandao(APIView):
                 koujian = 0
                 wucan = 0
                 if '上午' in iss['checkedTimes']:
-                    koujian = koujian+1
+                    koujian = koujian + 1
                     moring = True
                 if '下午' in iss['checkedTimes']:
                     koujian = koujian + 1
                     afternoon = True
                 if '午餐' in iss['checkedTimes']:
-                    wucan = wucan+10
+                    wucan = wucan + 10
                     lunch = True
                 # 更新主表餐费余额及课时余额
                 keshiyue = keshiyue - koujian
@@ -245,11 +328,11 @@ class send_qiandao(APIView):
                 studentprofile.remaining_hours = keshiyue
                 studentprofile.save()
                 # 新增签到行
-                new_Record = StudentRecord(student_name=student_name,file_number=file_number,changed_hours=-koujian,
-                                           remaining_hours=keshiyue,deducted_meal_fee=-wucan,meal_balance=wucanyue,
-                                           morning=moring,afternoon=afternoon,lunch=lunch,note=note,oc_time= oc_time)
+                new_Record = StudentRecord(student_name=student_name, file_number=file_number, changed_hours=-koujian,
+                                           remaining_hours=keshiyue, deducted_meal_fee=-wucan, meal_balance=wucanyue,
+                                           morning=moring, afternoon=afternoon, lunch=lunch, note=note, oc_time=oc_time)
                 new_Record.save()
             return JsonResponse({'status': 'success', 'message': '写入数据库成功'})
         except Exception as e:
-            print(e)
-        return JsonResponse({'status': 'error', 'message': e})
+            ss = str(e)
+        return JsonResponse({'status': 'error', 'message': ss})

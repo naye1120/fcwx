@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="timezone" content="Asia/Shanghai">
-    <title>方辰托管</title>
+    <title>方辰托管签到更新</title>
     <!-- 引入Vue -->
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
     <!-- 引入Element UI -->
@@ -18,7 +17,7 @@
         <div class="centered-title">
             <el-row>
                 <el-col :span="24">
-                    <h1>方辰托管</h1>
+                    <h1>方辰托管签到更新</h1>
                 </el-col>
             </el-row>
         </div>
@@ -28,39 +27,41 @@
                         v-for="item in classes"
                         :key="item.classId"
                         :label="item.className"
-                        :value="item.classId">
+                        :value="item.classId" id="classId.value">
                 </el-option>
             </el-select>
         </el-form-item>
         <el-form-item label="学生名称" prop="thing13.value" >
-            <el-select v-model="form.thing13.value" placeholder="请选择学生">
+            <el-select v-model="form.thing13.value" placeholder="请选择学生" @change="studentchange">
 
                 <el-option
                         v-for="item in students"
                         :key="item.studentId"
                         :label="item.name"
-                        :value="item.studentId">
+                        :value="item.studentId" id="thing13.value">
                 </el-option>
             </el-select>
         </el-form-item>
-        <el-form-item label="日期" prop="time22.value" >
-            <el-date-picker
-                    v-model="form.time22.value"
-                    type="date"
-                    placeholder="选择日期"
-                    value-format="yyyy-MM-DD">
+        <el-form-item label="日期"   prop="time22.value"  >
+            <el-date-picker  v-model="form.time22.value" type="date" placeholder="选择日期"
+                             value-format="yyyy-MM-dd"
+                     id="time22.value">
             </el-date-picker>
 
-            <el-form-item>
+        </el-form-item>
+         <el-form-item label="出席情况">
               <el-checkbox label="上午" v-model="form.morning" >上午</el-checkbox>
               <el-checkbox label="下午" v-model="form.afternoon" >下午</el-checkbox>
               <el-checkbox label="午餐" v-model="form.lunch" >就餐</el-checkbox>
         </el-form-item>
-
+        <el-form-item label="备注">
+            <el-input type="textarea"   placeholder="请输入内容"
+                                v-model="form.beizhu">></el-input>
         </el-form-item>
+
         <el-form-item>
-             <el-button type="primary" @click="onSubmit">销假</el-button>
-            <el-button type="success" @click="onSubmit2">请假</el-button>
+             <el-button type="primary" @click="onSubmit">更新考勤</el-button>
+
         </el-form-item>
     </el-form>
 </div>
@@ -72,13 +73,14 @@
             return {
                 form: {
                     classId: {"value": ''},
-                    thing13: {"value": ''},
-                    time22: {"value": new Date()},
+                    thing13: {"value": '',"name": ""},
+                    time22: {"value": ''},
                     description: {"value": ''},
-                    mark:'',
+                    mark:'gengxin',
                     morning: true,
                     afternoon: true,
                     lunch: true,
+                    beizhu:'更新考勤',
                 },
                 classes: '',
                 students: [],
@@ -97,15 +99,28 @@
         },
 
         methods: {
+            studentchange(value){
+
+                for (var i = 0; i < this.students.length; i++)
+                    if (this.students[i].studentId === value) {
+                        this.form.thing13.name = this.students[i].name
+                        this.form.thing13.value = this.students[i].studentId
+                        console.log(this.form.thing13.name)
+                        break;
+                    }
+
+
+
+            },
             handleClassChange(value) {
                 // 模拟根据班级筛选学生
-
                 for (let i = 0; i < this.classes.length; i++) {
                     // 检查当前班级的classId是否与传入的classId匹配
                     if (this.classes[i].classId === value) {
                         // 如果匹配，返回当前班级的学生列表
                         this.students = this.classes[i].students;
                         this.form.thing13.value = this.students[0].studentId
+                        this.form.thing13.name = this.students[0].name
                         break;
 
                     }else {
@@ -116,11 +131,30 @@
 
             },
             onSubmit() {
-                // 发送数据到后端
-                this.form.mark = 'xiaojia'
+                // 提交更新考勤信息
+                this.form.mark = 'gengxin'
                 this.$refs.formRef.validate((valid) => {
                     if (valid) {
-                        console.log(valid)
+
+                        this.form.description.value = -1
+                        axios.post('{% url "send_koujian" %}', this.form)
+                            .then(response => {
+                                alert('提交成功');
+                                this.onSubmitsend()
+                                console.log(response.data);
+                            })
+                            .catch(error => {
+                                alert('提交失败');
+                                console.error(error);
+                            });
+                    }
+                })
+            },
+            onSubmitsend() {
+                // 提交更新考勤信息
+                this.form.mark = 'gengxin'
+                this.$refs.formRef.validate((valid) => {
+                    if (valid) {
                         this.form.description.value = -1
                         axios.post('{% url "send_template_message" %}', this.form)
                             .then(response => {
@@ -134,20 +168,7 @@
                     }
                 })
             },
-            onSubmit2() {
-                this.form.mark = 'qingjia'
-                // 发送数据到后端进行请假 url 需要重新设置
-                this.form.description.value = 0
-                axios.post('{% url "send_template_message" %}', this.form)
-                    .then(response => {
-                        alert('提交成功');
-                        console.log(response.data);
-                    })
-                    .catch(error => {
-                        alert('提交失败');
-                        console.error(error);
-                    });
-            },
+
             fetchData() {
                 axios.get('{% url "get_c_s" %}')
                     .then(response => {
