@@ -276,7 +276,8 @@ class send_koujian(APIView):
                 student.save()
                 new_Record = StudentRecord(student_name=student_name, file_number=studentid, changed_hours=-koujian,
                                            remaining_hours=keshiyue, deducted_meal_fee=-wucan, meal_balance=wucanyue,
-                                           morning=moring, afternoon=afternoon, lunch=lunch, note=note, oc_time=oc_time)
+                                           morning=moring, afternoon=afternoon, lunch=lunch, note=note, oc_time=oc_time
+                                           ,tag="更新")
                 new_Record.save()
                 return JsonResponse({'status': 'success', 'message': '写入数据库成功'})
             except Exception as e:
@@ -330,9 +331,51 @@ class send_qiandao(APIView):
                 # 新增签到行
                 new_Record = StudentRecord(student_name=student_name, file_number=file_number, changed_hours=-koujian,
                                            remaining_hours=keshiyue, deducted_meal_fee=-wucan, meal_balance=wucanyue,
-                                           morning=moring, afternoon=afternoon, lunch=lunch, note=note, oc_time=oc_time)
+                                           morning=moring, afternoon=afternoon, lunch=lunch, note=note, oc_time=oc_time,
+                                           tag="签到")
                 new_Record.save()
             return JsonResponse({'status': 'success', 'message': '写入数据库成功'})
         except Exception as e:
             ss = str(e)
         return JsonResponse({'status': 'error', 'message': ss})
+
+
+class qiandao_list(APIView):
+    def get(self, request, *args, **kwargs):
+        return render(request, 'qiandaolist.html')
+
+class get_qiandao_list(APIView):
+    def get(self, request, *args, **kwargs):
+        studenrecords = StudentRecord.objects.all()
+        stujs = {
+            "records":[]
+        }
+
+
+        for stu in studenrecords:
+            i = 0
+            checkdTitles = []
+            if stu.morning:
+                checkdTitles.append("上午")
+            if  stu.afternoon:
+                checkdTitles.append("下午")
+            if stu.lunch:
+                checkdTitles.append("午餐")
+            student_data = {
+                "studentId": stu.file_number,
+                "name": stu.student_name,
+                "keshiyue": stu.remaining_hours,
+                "canfeiyue": stu.meal_balance,
+                "change_hours": stu.changed_hours,
+                "bencicanfei": stu.deducted_meal_fee,
+                # "morning": stu.morning,
+                # "afternoon": stu.afternoon,
+                # "lunch": stu.lunch,
+                "tag":stu.tag,
+                "oc_time": stu.oc_time.strftime("%Y-%m-%d"),
+                "checkedTimes": checkdTitles,
+                "beizhu": stu.note,
+            }
+            stujs['records'].append(student_data)
+
+        return JsonResponse(stujs)

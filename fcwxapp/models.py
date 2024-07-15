@@ -112,6 +112,8 @@ class StudentRecord(models.Model):
     lunch = models.BooleanField(default=False, verbose_name="午饭")
     # 备注
     note = models.TextField(blank=True, verbose_name="备注")
+    #标签
+    tag = models.CharField(max_length=50, blank=True, verbose_name="标签")
 
     # 这里可以添加更多逻辑或方法
 

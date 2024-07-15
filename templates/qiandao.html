@@ -1,18 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>方辰托管每日签到</title>
-    <!-- 引入 Vue.js -->
-    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
-    <!-- 引入Element UI -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-ui@2.15.6/lib/theme-chalk/index.css">
-    <script src="https://cdn.jsdelivr.net/npm/element-ui@2.15.6/lib/index.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-</head>
-<body>
-<div id="app">
+{% extends "base.html" %}
+
+{% block title %}方辰托管每日签到{% endblock %}
+
+{% block content %}
+   <div id="app">
     <el-form :model="form" ref="formRef" :rules="rules">
         <el-form-item>
             <div class="centered-title">
@@ -76,8 +67,10 @@
 
 
 </div>
+{% endblock %}
 
-<script>
+{% block footer %}
+   <script>
     new Vue({
         el: '#app',
         data() {
@@ -181,5 +174,7 @@
         }
     });
 </script>
-</body>
-</html>
+{%   endblock %}
+
+
+
