@@ -1,0 +1,142 @@
+<!-- child.html -->
+{% extends "base.html" %}
+
+{% block title %}方辰托管课时情况{% endblock %}
+
+{% block content %}
+    <div id="app">
+        <el-form>
+            <el-form-item>
+                <div class="centered-title">
+                    <el-row>
+                        <el-col :span="24">
+                            <h1>方辰托管课时情况</h1>
+                        </el-col>
+                    </el-row>
+                </div>
+            </el-form-item>
+            <el-form-item label="姓名">
+                <el-input v-model="filters.name" placeholder="请输入姓名"></el-input>
+            </el-form-item>
+            <el-form-item label="操作日期">
+                {#                 <el-input v-model="filters.class" placeholder="请输入班级"></el-input>#}
+                <el-input v-model="filters.date" type="date" placeholder="请选择日期" format="yyyy/MM/dd"
+                          value-format="yyyy/MM/dd"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="fetchFilteredData">查询</el-button>
+                <el-button type="success" @click="exportData">导出</el-button>
+            </el-form-item>
+            <el-form-item>
+                <el-table :data="filteredStudents" style="width: 100%" border>
+                    <el-table-column prop="index" label="序号" type="index"
+                                    ></el-table-column>
+                    <el-table-column prop="name" label="姓名"></el-table-column>
+                    <el-table-column prop="studentId" label="档案编号"></el-table-column>
+                    <!-- 其他列... -->
+                    <el-table-column prop="change_hours" label="变化课时"></el-table-column>
+                    <el-table-column prop="keshiyue" label="剩余课时"></el-table-column>
+                    <el-table-column prop="bencicanfei" label="本次餐费"></el-table-column>
+                    <el-table-column prop="canfeiyue" label="剩余餐费"></el-table-column>
+                    <el-table-column prop="oc_time" label="发生时间"></el-table-column>
+                    <el-table-column label="签到时段">
+                        <template slot-scope="scope">
+                            <el-checkbox-group v-model="scope.row.checkedTimes">
+                                <el-checkbox disabled label="上午"></el-checkbox>
+                                <el-checkbox disabled label="下午"></el-checkbox>
+                                <el-checkbox disabled label="午餐"></el-checkbox>
+                            </el-checkbox-group>
+                        </template>
+                    </el-table-column>
+                    <el-table-column  prop="tag" label="标签" color="red">
+                    </el-table-column>
+                    <el-table-column prop="beizhu" label="备注"></el-table-column>
+
+
+                </el-table>
+            </el-form-item>
+        </el-form>
+
+
+    </div>
+{% endblock %}
+
+{% block footer %}
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    students: [], // 存储学生数据
+                    filteredStudents: [],
+                    filters: {
+                        name: '',
+                        date: '',
+                        class: '646'
+                    },
+
+                };
+            },
+            created() {
+                this.fetchData();
+
+            },
+            methods: {
+                fetchData() {
+                    // 假设你有一个API可以获取学生数据
+                    // 这里用setTimeout模拟异步请求
+
+                    axios.get('{% url "get_qiandao_list" %}')
+                        .then(response => {
+                            this.students = this.filteredStudents = response.data.records;
+                            console.log(response.data)
+                        })
+                        .catch(error => {
+                            console.error('Error fetching data:', error);
+                        });
+                    // 假设这是从后端获取的数据
+                    {#this.students = [#}
+                    {#    // 示例数据#}
+                    {#    { name: '张三', id: '001', /* 其他字段 */ },#}
+                    {#    // 更多数据...#}
+                    {#];#}
+                },
+
+                applyFilters() {
+                    // 假设这里只根据姓名进行筛选
+                    if (this.filters.name.trim() === '') {
+                        // 如果姓名为空，显示全部学生
+                        this.filteredStudents = [...this.students];
+                    } else {
+                        // 否则，根据姓名过滤学生数据
+                        this.filteredStudents = this.students.filter(student => {
+                            return student.name.toLowerCase().includes(this.filters.name.toLowerCase());
+                        });
+                    }
+                    if (this.filters.date.trim() === '') {
+
+                    } else {
+                        this.filteredStudents = this.filteredStudents.filter(student => {
+                            return student.oc_time.includes(this.filters.date);
+                        });
+                    }
+                },
+                fetchFilteredData() {
+                    this.applyFilters()
+                },
+                exportData() {
+
+                    // 使用 SheetJS 将数据转换为 Excel
+                    const ws = XLSX.utils.json_to_sheet(this.filteredStudents);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+
+                    // 生成 Excel 文件并触发下载
+                    XLSX.writeFile(wb, "export.xlsx");
+                },
+                // 其他查询和导出按钮的点击事件
+                // 查询和导出按钮的方法需要根据你的具体需求来实现
+            }
+        });
+    </script>
+{% endblock %}
