@@ -20,7 +20,7 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from fcwxapp.models import WeChatToken, StudentProfile, HostClass, StudentRecord
+from fcwxapp.models import WeChatToken, StudentProfile, HostClass, StudentRecord, RechargeRecord
 
 WECHAT_TOKEN = 'naye1204'
 # appid = 'wx34415bfb0ed72501'
@@ -180,6 +180,41 @@ class send_template_message(APIView):
                     "data": data
                 }
                 mess = wxapi.sene_tem(access_token=access_token, post_data=post_data)
+        elif data['mark'] == 'chongzhi':
+            studentid = data['student_name']['value']
+            studentrecord = RechargeRecord.objects.filter(file_number=studentid).last()
+            student = StudentProfile.objects.filter(archive_number=studentid).last()
+            # student.remaining_classes -= 2
+            # student.meal_balance -= 10
+            # student.save()
+            if studentrecord:
+                WECHAT_TEMPLATE_ID = 'MHF71QznwMs6My3teFlQv4Qk8jUMmG3c1wLw6B487zY'
+                data['phrase1'] = {"value": studentrecord.student_name}
+                data['character_string14'] = {"value":studentrecord.recharge_hours}
+                data['character_string12'] = {"value": student.remaining_hours}
+                data['time4'] = {"value": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+                data['thing16'] = {"value": f'餐费：充{studentrecord.recharge_meal_fee}，余：{student.meal_balance}'}
+                OPEN_ID = student.parent_openid
+
+                # open_id = 'oCvGS6Unqsz2vVBPezahRATfUWHM'
+                open_id = OPEN_ID
+                template_id = WECHAT_TEMPLATE_ID  # 你的模板ID
+                # ... 其他数据，如模板消息的各个字段的值 ...
+
+                # 获取access_token
+                access_token = wxapi.get_access_token(appid, secret)
+                # 构造发送模板消息的请求体
+                post_data = {
+                    "touser": open_id,
+                    "template_id": template_id,
+                    "url": "",
+                    "miniprogram": {
+
+                    },
+                    "client_msg_id": "",
+                    "data": data
+                }
+                mess = wxapi.sene_tem(access_token=access_token, post_data=post_data)
         return mess
 
 
@@ -187,11 +222,9 @@ class get_c_s(APIView):
     """
     获取班级和学生信息
     """
-
     def get(self, request, *args, **kwargs):
         students = StudentProfile.objects.all()
         classes = HostClass.objects.all()
-
         stujs = {
             "classes": []
 
@@ -287,8 +320,6 @@ class send_koujian(APIView):
             return JsonResponse({'message': 'Error occurred while sending koujian notification'}, status=500)
 
 
-
-
 class send_qiandao(APIView):
     """
     发送扣减通知
@@ -344,6 +375,7 @@ class qiandao_list(APIView):
     def get(self, request, *args, **kwargs):
         return render(request, 'qiandaolist.html')
 
+
 class get_qiandao_list(APIView):
     def get(self, request, *args, **kwargs):
         studenrecords = StudentRecord.objects.all()
@@ -379,3 +411,38 @@ class get_qiandao_list(APIView):
             stujs['records'].append(student_data)
 
         return JsonResponse(stujs)
+
+class chongzhi(APIView):
+    def get(self, request, *args, **kwargs):
+        return render(request, 'chongzhi.html')
+
+    def post(self, request, *args, **kwargs):
+        print(request.data)
+        student_name = request.data['student_name']['name']
+        file_number = request.data['student_name']['value']
+        recharge_date = request.data['recharge_date']
+        recharge_hours = request.data['recharge_hours']
+        recharge_meal_fee = request.data['recharge_meal_fee']
+        note = request.data['note']
+        if request.data['radioValue']==1:
+            payment_method = '现金'
+        elif request.data['radioValue']==2:
+            payment_method = '微信'
+        elif request.data['radioValue']==3:
+            payment_method = '转账'
+        else:
+            payment_method = '其他'
+        try:
+            # 新增签到行
+            new_Record = RechargeRecord(student_name=student_name,file_number=file_number,recharge_date=recharge_date,
+                                        recharge_hours=recharge_hours,recharge_meal_fee=recharge_meal_fee,
+                                        payment_method=payment_method, note=note)
+            new_Record.save()
+            studentprofile = StudentProfile.objects.filter(archive_number=file_number).last()
+            studentprofile.remaining_hours = studentprofile.remaining_hours + Decimal(recharge_hours)
+            studentprofile.meal_balance = studentprofile.meal_balance + Decimal(recharge_meal_fee)
+            studentprofile.save()
+            return JsonResponse({'status': 'success', 'message': '写入数据库成功'})
+        except Exception as e:
+            ss = str(e)
+        return JsonResponse({'status': 'error', 'message': ss})

@@ -140,13 +140,7 @@ class RechargeRecord(models.Model):
     # 充值餐费
     recharge_meal_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="充值餐费")
     # 缴费方式，使用choices限制选项
-    PAYMENT_CHOICES = (
-        ('wechat', '微信'),
-        ('transfer', '转账'),
-        ('cash', '现金'),
-        ('other', '其他'),
-    )
-    payment_method = models.CharField(max_length=10, choices=PAYMENT_CHOICES, default='other', verbose_name="缴费方式")
+    payment_method = models.CharField(max_length=10,  default='其他', verbose_name="缴费方式")
     # 备注
     note = models.TextField(blank=True, verbose_name="备注")
 

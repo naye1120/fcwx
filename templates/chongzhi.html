@@ -1,0 +1,243 @@
+<!-- child.html -->
+{% extends "base.html" %}
+
+{% block title %}方辰托管课时充值{% endblock %}
+
+{% block content %}
+    <div id="app">
+    <div class="centered-title">
+            <el-row>
+                <el-col :span="24">
+                    <h1>方辰托管充值</h1>
+                </el-col>
+            </el-row>
+        </div>
+    <el-form :rules="rules" ref="formRef" :model="form" label-width="120px">
+
+        <el-form-item label="班级" prop="classId.value">
+            <el-select v-model="form.classId.value" placeholder="请选择班级" @change="handleClassChange">
+                <el-option
+                        v-for="item in classes"
+                        :key="item.classId"
+                        :label="item.className"
+                        :value="item.classId">
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="学生姓名" prop="student_name.value">
+            <el-select v-model="form.student_name.value" placeholder="请选择" @change="studentchange">
+                <el-option
+                    v-for="item in students"
+                        :key="item.studentId"
+                        :label="item.name"
+                        :value="item.studentId"
+                >
+                </el-option>
+            </el-select>
+        </el-form-item>
+        <el-form-item label="档案编号">
+            <span>{[ form.student_name.value ]}</span>
+        </el-form-item>
+        <el-form-item label="充值日期" prop="recharge_date">
+            <el-date-picker
+                v-model="form.recharge_date"
+                type="date"
+                placeholder="选择日期"
+                value-format="yyyy-MM-dd">
+            </el-date-picker>
+        </el-form-item>
+        <el-form-item label="充值课时" prop="recharge_hours">
+            <el-input-number v-model="form.recharge_hours" :min="0"></el-input-number>
+        </el-form-item>
+        <el-form-item label="充值餐费" prop="recharge_meal_fee">
+            <el-input v-model.number="form.recharge_meal_fee" placeholder="请输入金额"></el-input>
+        </el-form-item>
+        <el-form-item label="付款方式">
+             <el-radio-group v-model="form.radioValue" >
+                <el-radio :label="1"><span>现金</span></el-radio>
+                <el-radio :label="2"><span>微信</span></el-radio>
+                <el-radio :label="3"><span>转账</span></el-radio>
+                <el-radio :label="4"><span>其他</span></el-radio>
+  </el-radio-group>
+        </el-form-item>
+        <el-form-item label="备注">
+            <el-input type="textarea" v-model="form.note"></el-input>
+        </el-form-item>
+        <el-button type="primary" @click="submitForm">提交</el-button>
+    </el-form>
+</div>
+{% endblock %}
+
+{% block footer %}
+    <script>
+        new Vue({
+            el: '#app',
+            delimiters: ["{[", "]}"], // 可自定义符号
+            data() {
+                return {
+                   form: {
+                       student_name: {'value': '', 'name': ''},
+                       file_number: '', // 假设这个值通过某种方式从后端获取
+                       recharge_date: '',
+                       recharge_hours: 46,
+                       recharge_meal_fee: 230.00,
+                       note: '',
+                       classId: {"value": ''},
+                       mark:'',
+                       radioValue:'',
+                   },
+                    classes: '',
+                    students: [],
+                    rules: {
+                    'classId.value': [
+                        {required: true, message: '请选择班级', trigger: 'change'}
+                    ],
+                    'student_name.value': [
+                        {required: true, message: '请选择学生', trigger: 'change'}
+                    ],
+                    'recharge_date': [
+                        {required: true, message: '请选择日期', trigger: 'change'}
+                    ],
+                     'recharge_hours': [
+                        {required: true, message: '请输入充值课时', trigger: 'change'}
+                    ],
+                    'recharge_meal_fee': [
+                        {required: true, message: '请输入充值餐费', trigger: 'change'}
+                    ]
+                }
+
+
+                };
+            },
+
+            created() {
+                this.fetchData();
+
+            },
+            methods: {
+                studentchange(value){
+
+                for (var i = 0; i < this.students.length; i++)
+                    if (this.students[i].studentId === value) {
+                        this.form.student_name.name = this.students[i].name
+                        this.form.student_name.value = this.students[i].studentId
+                        break;
+                    }
+
+
+
+            },
+                submitForm() {
+                     // 提交更新考勤信息
+                this.form.mark = 'chongzhi'
+                this.$refs.formRef.validate((valid) => {
+                    if (valid) {
+
+                        axios.post('{% url "chongzhi" %}', this.form)
+                            .then(response => {
+                                alert('提交成功');
+                                this.onSubmitsend()
+                                console.log(response.data);
+                            })
+                            .catch(error => {
+                                alert('提交失败');
+                                console.error(error);
+                            });
+                    }
+                })
+                },
+                onSubmitsend() {
+                // 提交更新考勤信息
+                this.form.mark = 'chongzhi'
+                this.$refs.formRef.validate((valid) => {
+                    if (valid) {
+
+                        axios.post('{% url "send_template_message" %}', this.form)
+                            .then(response => {
+                                alert('提交成功');
+                                console.log(response.data);
+                            })
+                            .catch(error => {
+                                alert('提交失败');
+                                console.error(error);
+                            });
+                    }
+                })
+            },
+                fetchData() {
+                    // 假设你有一个API可以获取学生数据
+                    // 这里用setTimeout模拟异步请求
+
+                    axios.get('{% url "get_c_s" %}')
+                        .then(response => {
+                        this.classes = response.data.classes;
+                        console.log(this.classes)
+                    })
+                    .catch(error => {
+                        console.error('Error fetching data:', error);
+                    });
+
+                    // 假设这是从后端获取的数据
+                    {#this.students = [#}
+                    {#    // 示例数据#}
+                    {#    { name: '张三', id: '001', /* 其他字段 */ },#}
+                    {#    // 更多数据...#}
+                    {#];#}
+                },
+
+                applyFilters() {
+                    // 假设这里只根据姓名进行筛选
+                    if (this.filters.name.trim() === '') {
+                        // 如果姓名为空，显示全部学生
+                        this.filteredStudents = [...this.students];
+                    } else {
+                        // 否则，根据姓名过滤学生数据
+                        this.filteredStudents = this.students.filter(student => {
+                            return student.name.toLowerCase().includes(this.filters.name.toLowerCase());
+                        });
+                    }
+                    if (this.filters.date.trim() === '') {
+
+                    } else {
+                        this.filteredStudents = this.filteredStudents.filter(student => {
+                            return student.oc_time.includes(this.filters.date);
+                        });
+                    }
+                },
+                fetchFilteredData() {
+                    this.applyFilters()
+                },
+                handleClassChange(value) {
+                // 模拟根据班级筛选学生
+                  for (let i = 0; i < this.classes.length; i++) {
+                    // 检查当前班级的classId是否与传入的classId匹配
+                    if (this.classes[i].classId === value) {
+                        // 如果匹配，返回当前班级的学生列表
+                        this.students = this.classes[i].students;
+                        this.form.student_name.value = this.students[0].studentId
+                        this.form.student_name.name = this.students[0].name
+
+                        break;
+
+                    }else {
+                        this.form.thing13.value='';
+                    }
+                }
+
+
+            },
+                exportData() {
+
+                    {#// 使用 SheetJS 将数据转换为 Excel#}
+                    {#const ws = XLSX.utils.json_to_sheet(this.filteredStudents);#}
+                    {#const wb = XLSX.utils.book_new();#}
+                    {#XLSX.utils.book_append_sheet(wb, ws, "Sheet1");#}
+                    {#// 生成 Excel 文件并触发下载#}
+                    {#XLSX.writeFile(wb, "export.xlsx");#}
+                },
+                // 其他查询和导出按钮的点击事件
+                // 查询和导出按钮的方法需要根据你的具体需求来实现
+            }
+        });
+    </script>
+{% endblock %}
