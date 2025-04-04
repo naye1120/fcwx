@@ -446,3 +446,8 @@ class chongzhi(APIView):
         except Exception as e:
             ss = str(e)
         return JsonResponse({'status': 'error', 'message': ss})
+
+class Index(APIView):
+    def get(self, request, *args, **kwargs):
+        # //跳转index.html
+        return render(request, 'index.html')

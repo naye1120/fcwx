@@ -1,0 +1,24 @@
+<!-- child.html -->
+{% extends "base.html" %}
+
+{% block title %}方辰托管课时充值{% endblock %}
+
+{% block content %}
+    <div id="app">
+        <!-- 新增四个按钮 -->
+        <button>充值</button>
+        <button>扣减</button>
+        <button>签到</button>
+        <button>列表</button>
+    </div>
+{% endblock %}
+
+{% block footer %}
+    <script>
+ new Vue({
+            el: '#app',
+            data: {
+
+            }})
+    </script>
+{% endblock %}
